@@ -226,7 +226,7 @@ pub fn get_matches(input: RString, state: &State) -> RVec<Match> {
 
             // dont prioritize actions!! >:(
             if entry.is_action {
-                score *= 0.5;
+                score >>= 1;
             }
 
             // Score cutoff

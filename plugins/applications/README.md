@@ -31,5 +31,7 @@ Config(
     // {} is replaced with the command in the desktop entry
     args: "-e {}",
   )),
+  // The history size for the application history, set to 0 to disable history
+  history_size: 50,
 )
 ```
