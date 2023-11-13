@@ -180,6 +180,7 @@ pub fn init(config_dir: RString) -> State {
     });
 
     let history = history::History::load();
+    println!("Loaded {} history entries", history.count());
 
     State {
         config,

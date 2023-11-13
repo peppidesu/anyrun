@@ -43,8 +43,9 @@ impl History {
             eprintln!("Error writing history: {}", why);
         }
     }
+
     pub fn add_entry(&mut self, entry: DesktopEntry) {
-        self.0.push_back(entry);
+        self.0.push_front(entry);
     }
 
     pub fn truncate(&mut self, max_entries: usize) {
@@ -55,5 +56,8 @@ impl History {
         let index = self.0.iter().position(|x| x == entry)?;
         let count = self.0.iter().filter(|x| *x == entry).count();
         Some((index, count))
+    }
+    pub fn count(&self) -> usize {
+        self.0.len()
     }
 }
