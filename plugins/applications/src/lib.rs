@@ -213,14 +213,10 @@ pub fn get_matches(input: RString, state: &State) -> RVec<Match> {
                 .max()
                 .unwrap_or(0);
 
-            let history_score = state
-                .history
-                .get_entry_info(entry)
-                .map(|(index, count)| {
-                    let recency = 10 - index as i64;
-                    (count as i64 + recency) * 20
-                })
-                .unwrap_or(0);
+            let history_score = state.history.get_entry_info(entry).map(|(index, count)| {                
+                let recency_bias = i64::max(5-index as i64, 0);
+                (count as i64 + recency_bias) * 20
+            }).unwrap_or(0);
 
             let mut score =
                 (name_score * 10 + desc_score + keyword_score + history_score * 3) - entry.offset;
