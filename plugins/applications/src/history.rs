@@ -18,11 +18,10 @@ impl History {
         );
 
         if let Ok(content) = fs::read_to_string(&path) {
-            let mut history: VecDeque<DesktopEntry> =
-                ron::from_str(&content).unwrap_or_else(|why| {
-                    eprintln!("Error parsing history: {}", why);
-                    VecDeque::new()
-                });
+            let history: VecDeque<DesktopEntry> = ron::from_str(&content).unwrap_or_else(|why| {
+                eprintln!("Error parsing history: {}", why);
+                VecDeque::new()
+            });
             return Self(history);
         }
 
