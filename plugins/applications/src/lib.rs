@@ -10,6 +10,7 @@ pub struct Config {
     desktop_actions: bool,
     max_entries: usize,
     terminal: Option<Terminal>,
+    history_size: usize,
     preprocess_exec_script: Option<PathBuf>,
 }
 
@@ -26,6 +27,7 @@ impl Default for Config {
             max_entries: 5,
             preprocess_exec_script: None,
             terminal: None,
+            history_size: 50,
         }
     }
 }
@@ -33,12 +35,14 @@ impl Default for Config {
 pub struct State {
     config: Config,
     entries: Vec<(DesktopEntry, u64)>,
+    history: history::History,
 }
 
+mod history;
 mod scrubber;
 
 #[handler]
-pub fn handler(selection: Match, state: &State) -> HandleResult {
+pub fn handler(selection: Match, state: &mut State) -> HandleResult {
     let entry = state
         .entries
         .iter()
@@ -150,6 +154,10 @@ pub fn handler(selection: Match, state: &State) -> HandleResult {
         eprintln!("Error running desktop entry: {}", why);
     }
 
+    state.history.add_entry(entry.clone());
+    state.history.truncate(state.config.history_size);
+    state.history.write();
+
     HandleResult::Close
 }
 
@@ -171,7 +179,26 @@ pub fn init(config_dir: RString) -> State {
         Vec::new()
     });
 
-    State { config, entries }
+    let history = history::History::load();
+
+    State {
+        config,
+        entries,
+        history,
+    }
+}
+
+fn format_entries(entries: Vec<(&DesktopEntry, u64)>) -> RVec<Match> {
+    entries
+        .into_iter()
+        .map(|(entry, id)| Match {
+            title: entry.name.clone().into(),
+            description: entry.desc.clone().map(|desc| desc.into()).into(),
+            use_pango: false,
+            icon: ROption::RSome(entry.icon.clone().into()),
+            id: ROption::RSome(id),
+        })
+        .collect()
 }
 
 #[get_matches]
@@ -198,11 +225,21 @@ pub fn get_matches(input: RString, state: &State) -> RVec<Match> {
                 .max()
                 .unwrap_or(0);
 
-            let mut score = (name_score * 10 + desc_score + keyword_score) - entry.offset;
+            let history_score = state
+                .history
+                .get_entry_info(entry)
+                .map(|(index, count)| {
+                    let recency = 10 - index;
+                    ((count + recency) * 20) as i64
+                })
+                .unwrap_or(0);
 
-            // prioritize actions
+            let mut score =
+                (name_score * 10 + desc_score + keyword_score + history_score * 3) - entry.offset;
+
+            // dont prioritize actions!! >:(
             if entry.is_action {
-                score *= 2;
+                score *= 0.5;
             }
 
             // Score cutoff
